@@ -833,14 +833,6 @@ LUALIB_API int rapidjson_decode (lua_State *L) {
   trailer = 2;
   switch (lua_type(L, 1)) {
     case LUA_TNIL: break;
-    case LUA_TLIGHTUSERDATA: {
-      luaL_checktype(L, 2, LUA_TNUMBER);
-
-      trailer = 3;
-      contents = reinterpret_cast<const char *>(lua_touserdata(L, 1));
-      len = luaL_optsizet(L, 2, 0);  // before offset for rapidjson compat
-      break;
-    }
     default: {
       contents = luaL_checklstring(L, 1, &len);
       break;
