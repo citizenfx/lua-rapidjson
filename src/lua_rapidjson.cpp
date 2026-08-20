@@ -300,7 +300,7 @@ static const lua_Integer decode_presets_num[] = {
 };
 
 static inline void create_shared_meta (lua_State *L, const char *meta, const char *type) {
-  luaL_newmetatable(L, meta);
+  luaL_getsubtable(L, LUA_REGISTRYINDEX, meta);
   lua_pushstring(L, type);
   lua_setfield(L, -2, LUA_RAPIDJSON_META_TYPE);
   lua_pop(L, 1);
@@ -1029,13 +1029,11 @@ LUALIB_API int rapidjson_getoption (lua_State *L) {
 }
 
 LUALIB_API int rapidjson_object (lua_State *L) {
-  //luaL_getmetatable(L, LUA_RAPIDJSON_REG_OBJECT);
   make_table_type(L, 1, LUA_RAPIDJSON_REG_OBJECT, LUA_RAPIDJSON_META_TYPE_OBJECT);
   return 1;
 }
 
 LUALIB_API int rapidjson_array (lua_State *L) {
-  //luaL_getmetatable(L, LUA_RAPIDJSON_REG_ARRAY);
   make_table_type(L, 1, LUA_RAPIDJSON_REG_ARRAY, LUA_RAPIDJSON_META_TYPE_ARRAY);
   return 1;
 }
