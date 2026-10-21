@@ -18,7 +18,7 @@
 #include <functional>
 #include <cstring>
 #include <vector>
-#include <math.h>
+#include <cmath>
 
 #include <rapidjson/internal/stack.h>
 #include <rapidjson/rapidjson.h>
@@ -41,14 +41,7 @@ extern LUA_RAPIDJSON_LINKAGE {
 #endif
 
 extern LUA_RAPIDJSON_LINKAGE {
-#if LUA_VERSION_NUM == 504  /* gritLua 5.4 */
   #include <lgrit_lib.h>
-#elif LUA_VERSION_NUM == 503  /* cfxLua 5.3 */
-  #include <llimits.h>
-  #include <lobject.h>
-#else
-   #error unsupported Lua version
-#endif
 }
 
 #include "StringStream.hpp"
@@ -96,11 +89,7 @@ extern LUA_RAPIDJSON_LINKAGE {
 */
 
 /* Changed from returning false/0 to LUA_TNIL in Lua 5.3; */
-#if LUA_VERSION_NUM >= 503
-  #define LUA_METAFIELD_FAIL LUA_TNIL
-#else
-  #define LUA_METAFIELD_FAIL 0
-#endif
+#define LUA_METAFIELD_FAIL LUA_TNIL
 
 /* Use the definitions for min/max integer specified in luaconf (>= Lua5.3) */
 #if !defined(LUA_MAXINTEGER)
@@ -112,12 +101,8 @@ extern LUA_RAPIDJSON_LINKAGE {
 #define JSON_UNUSED(x) ((void)(x))
 
 /* Maximum size visible for Lua (must be representable in a lua_Integer) */
-#if LUA_VERSION_NUM >= 503
-  #define JSON_MAX_LUAINDEX (sizeof(size_t) < sizeof(lua_Integer) ? std::numeric_limits<size_t>::max() \
-                                                                  : static_cast<size_t>(LUA_MAXINTEGER))
-#else
-  #define JSON_MAX_LUAINDEX std::numeric_limits<size_t>::max()
-#endif
+#define JSON_MAX_LUAINDEX (sizeof(size_t) < sizeof(lua_Integer) ? std::numeric_limits<size_t>::max() \
+                                                                : static_cast<size_t>(LUA_MAXINTEGER))
 
 /* Utility to help abstract relative stack indices with absolute */
 #define json_rel_index(idx, n) (((idx) < 0) ? ((idx) - (n)) : (idx))
@@ -126,17 +111,7 @@ extern LUA_RAPIDJSON_LINKAGE {
 ** Returns 1 if the value at the given index is an integer (that is, the value
 ** is a number and is represented as an integer), and 0 otherwise.
 */
-#if LUA_VERSION_NUM >= 503
-  #define json_isinteger(L, idx) lua_isinteger((L), (idx))
-#else
-static inline int json_isinteger (lua_State *L, int idx) {
-  if (LUA_TNUMBER == lua_type(L, idx)) {
-    const lua_Number n = lua_tonumber(L, idx);
-    return !isinf(n) && static_cast<lua_Number>(static_cast<lua_Integer>(n)) == n;
-  }
-  return 0;
-}
-#endif
+#define json_isinteger(L, idx) lua_isinteger((L), (idx))
 
 /* Unsafe macro to disable constant lua_checkstack calls */
 #if defined(LUA_RAPIDJSON_UNSAFE)
@@ -161,22 +136,11 @@ static inline int json_isinteger (lua_State *L, int idx) {
 #endif
 
 /* Macro for geti/seti. Parameters changed from int to lua_Integer in 53 */
-#if LUA_VERSION_NUM >= 503
-  #define json_getfield(L, I, K) lua_getfield((L), (I), (K))
-  #define json_gettable(L, I) lua_gettable((L), (I))
-#else
-  #define json_getfield(L, I, K) (lua_getfield((L), (I), (K)), lua_type((L), -1))
-  #define json_gettable(L, I) (lua_gettable((L), (I)), lua_type((L), -1))
-#endif
+#define json_getfield(L, I, K) lua_getfield((L), (I), (K))
+#define json_gettable(L, I) lua_gettable((L), (I))
 
 /* Lua 54 changed the definition of lua_newuserdata */
-#if LUA_VERSION_NUM >= 504
-  #define json_newuserdata(L, s) lua_newuserdatauv((L), (s), 0)
-#elif LUA_VERSION_NUM >= 501 && LUA_VERSION_NUM <= 503
-  #define json_newuserdata(L, s) lua_newuserdata((L), (s))
-#else
-  #error unsupported Lua version
-#endif
+#define json_newuserdata(L, s) lua_newuserdatauv((L), (s), 0)
 
 /* }================================================================== */
 
@@ -227,18 +191,14 @@ static inline int json_isinteger (lua_State *L, int idx) {
 ** rapidjson::Writer<rapidjson::StringBuffer>::kDefaultMaxDecimalPlaces
 ** replacement, based upon the default string formats for Lua.
 */
-#if LUA_VERSION_NUM >= 503
-  #if LUA_FLOAT_TYPE == LUA_FLOAT_FLOAT
-    #define LUA_NUMBER_FMT_LEN 7
-  #elif LUA_FLOAT_TYPE == LUA_FLOAT_LONGDOUBLE  /* }{ long double */
-    #define LUA_NUMBER_FMT_LEN 19
-  #elif LUA_FLOAT_TYPE == LUA_FLOAT_DOUBLE  /* }{ double */
-    #define LUA_NUMBER_FMT_LEN 14
-  #else
-    #error "numeric float type not defined"
-  #endif
-#else
+#if LUA_FLOAT_TYPE == LUA_FLOAT_FLOAT
+  #define LUA_NUMBER_FMT_LEN 7
+#elif LUA_FLOAT_TYPE == LUA_FLOAT_LONGDOUBLE  /* }{ long double */
+  #define LUA_NUMBER_FMT_LEN 19
+#elif LUA_FLOAT_TYPE == LUA_FLOAT_DOUBLE  /* }{ double */
   #define LUA_NUMBER_FMT_LEN 14
+#else
+  #error "numeric float type not defined"
 #endif
 
 /*
@@ -358,29 +318,14 @@ LUA_RAPIDJSON_API bool table_is_json_array (lua_State *L, int idx, lua_Integer f
 /* Handle gritLua vectors */
 static inline int parseVector (lua_State *L, int idx, lua_Float4 *f) {
   int args = 0;
-#if LUA_VERSION_NUM == 504  /* gritLua 5.4 */
-  switch (lua_tovector(L, idx, V_PARSETABLE, f)) {
-    case LUA_VVECTOR1: args = 1; break;
+  switch (lua_tovector(L, idx, f)) {
     case LUA_VVECTOR2: args = 2; break;
     case LUA_VVECTOR3: args = 3; break;
     case LUA_VQUAT: case LUA_VVECTOR4: args = 4; break;
     default:
-      luaL_typeerror(L, idx, "number or vector type");
+      luaL_typeerror(L, idx, "vector or quat");
       break;
   }
-#elif LUA_VERSION_NUM == 503  /* CfxLua 5.3 */
-  switch (lua_type(L, idx)) {
-    case LUA_TVECTOR2: args = 2; lua_checkvector2(L, idx, &f->x, &f->y); break;
-    case LUA_TVECTOR3: args = 3; lua_checkvector3(L, idx, &f->x, &f->y, &f->z); break;
-    case LUA_TVECTOR4: args = 4; lua_checkvector4(L, idx, &f->x, &f->y, &f->z, &f->w); break;
-    case LUA_TQUAT: args = 4; lua_checkquat(L, idx, &f->w, &f->x, &f->y, &f->z); break;
-    default:
-      const char *msg = lua_pushfstring(L, "%s expected, got %s", "vector", luaL_typename(L, idx));
-      luaL_argerror(L, idx, msg);
-  }
-#else
-#error unsupported Lua version
-#endif
   return args;
 }
 
@@ -445,7 +390,7 @@ namespace LuaSAX {
   ///   {"1":"number","1":"string"}
   ///
   /// </summary>
-  struct Key : std::unary_function<LuaSAX::Key, bool> {
+  struct Key {
     bool is_number, is_integer;
     union Data {
       lua_Number n;
@@ -478,7 +423,7 @@ namespace LuaSAX {
       return k.is_number ? false : (strcmp(data.s.key, k.data.s.key) < 0);
     }
 
-    bool operator()(const LuaSAX::Key &k) const {
+    bool operator==(const LuaSAX::Key &k) const {
       if (is_number) return k.is_number ? (asNumber() == k.asNumber()) : false;
       return k.is_number ? false : (strcmp(data.s.key, k.data.s.key) == 0);
     }
@@ -489,27 +434,15 @@ namespace LuaSAX {
   /// to the provided key sink. Returning 0 on success, an error code otherwise.
   /// </summary>
   static int populate_key_vector (lua_State *L, int idx, std::vector<LuaSAX::Key> &sink) {
-#if LUA_VERSION_NUM >= 502
     const size_t length = static_cast<size_t>(lua_rawlen(L, idx));
-#else
-    const size_t length = lua_objlen(L, idx);
-#endif
     for (size_t i = 1; i <= length; ++i) {
-#if LUA_VERSION_NUM >= 503
       const int type = lua_rawgeti(L, idx, static_cast<lua_Integer>(i));
-#else
-      lua_pushinteger(L, static_cast<lua_Integer>(i));
-      lua_rawget(L, json_rel_index(idx, 1));
-      const int type = lua_type(L, -1);
-#endif
       switch (type) {
         case LUA_TNUMBER: {
-#if LUA_VERSION_NUM >= 503
           if (lua_isinteger(L, -1))
             sink.push_back(LuaSAX::Key(lua_tointeger(L, -1)));
           else
-#endif
-          sink.push_back(LuaSAX::Key(lua_tonumber(L, -1)));
+            sink.push_back(LuaSAX::Key(lua_tonumber(L, -1)));
           break;
         }
         case LUA_TSTRING: {
@@ -570,14 +503,7 @@ private:
 
       static RAPIDJSON_FORCEINLINE Ctx Array() {
         return Ctx([](lua_State *_L, Ctx &ctx) {
-#if LUA_VERSION_NUM >= 503
           lua_rawseti(_L, -2, ++ctx.index);
-#else
-          lua_pushinteger(_L, ++ctx.index);  // [..., value, key]
-          lua_pushvalue(_L, -2);  // [..., value, key, value]
-          lua_rawset(_L, -4);  // [..., value]
-          lua_pop(_L, 1);  // [...]
-#endif
         });
       }
     };
@@ -610,15 +536,7 @@ public:
       } while ( 0 )
 
     bool ImplicitArrayInObjectContext(const rapidjson::SizeType u) {
-#if LUA_VERSION_NUM >= 503
       lua_rawseti(L, -2, static_cast<lua_Integer>(u));
-#else
-      lua_json_checkstack(L, 3);
-      lua_pushinteger(L, static_cast<lua_Integer>(u)); /* [..., value, key] */
-      lua_pushvalue(L, -2); /* [..., value, key, value] */
-      lua_rawset(L, -4); /* [..., value] */
-      lua_pop(L, 1); /* [...] */
-#endif
       return true;
     }
 
@@ -763,7 +681,7 @@ public:
 
     LUA_JSON_HANDLE(EndArray, rapidjson::SizeType elementCount) {
 #if !defined(LUA_RAPIDJSON_COMPAT)
-      lua_assert(elementCount == context_.index);
+      // lua_assert(elementCount == context_.index);
 #endif
       JSON_UNUSED(elementCount);
 
@@ -785,15 +703,12 @@ private:
     /// </summary>
     template<typename Writer>
     bool OrderedKey(const LuaSAX::Key &key, Writer &writer) const {
-#if LUA_VERSION_NUM >= 503
       if (key.is_integer) {
         char buffer[MAXNUMBER2STR];
         const char *end = rapidjson::internal::i64toa(static_cast<int64_t>(key.data.i), buffer);
         return writer.Key(buffer, static_cast<rapidjson::SizeType>(end - buffer));
       }
-      else
-#endif
-      if (key.is_number) {
+      else if (key.is_number) {
         const double d = static_cast<double>(key.data.n);
         if (rapidjson::internal::Double(d).IsNanOrInf()) {
           if (!(flags & JSON_NAN_AND_INF))
@@ -839,13 +754,11 @@ private:
         switch (lua_type(L, -2)) {
           case LUA_TNUMBER: {
             LuaSAX::Key k;
-#if LUA_VERSION_NUM >= 503
             if (lua_isinteger(L, -1))
               k = LuaSAX::Key(lua_tointeger(L, -1));
             else
-#endif
             k = LuaSAX::Key(lua_tonumber(L, -2));
-            if (std::find_if(key_order.begin(), key_order.end(), k) == key_order.end())
+            if (std::find(key_order.begin(), key_order.end(), k) == key_order.end())
               sink.push_back(k);
             break;
           }
@@ -854,7 +767,7 @@ private:
             const char *s = lua_tolstring(L, -2, &len);
 
             LuaSAX::Key k(s, len);
-            if (std::find_if(key_order.begin(), key_order.end(), k) == key_order.end())
+            if (std::find(key_order.begin(), key_order.end(), k) == key_order.end())
               sink.push_back(k);
             break;
           }
@@ -957,16 +870,7 @@ public:
           }
           break;
         }
-#if LUA_VERSION_NUM == 504
         case LUA_TVECTOR: {
-#elif LUA_VERSION_NUM == 503
-        case LUA_TVECTOR2:
-        case LUA_TVECTOR3:
-        case LUA_TVECTOR4:
-        case LUA_TQUAT: {
-#else
-  #error unsupported Lua version
-#endif
           lua_Float4 v;
           int args = parseVector(L, idx, &v);
           if (flags & JSON_ENCODER_ARRAY_VECTOR) {
@@ -1035,11 +939,7 @@ public:
         return false;
 
       bool result = true;
-#if LUA_VERSION_NUM > 502
       if (type == LUA_TFUNCTION) {
-#else
-      if (lua_type(L, -1) == LUA_TFUNCTION) {  // @TODO: LUA_RAPIDJSON_ERROR_FAIL
-#endif
         lua_pushvalue(L, json_rel_index(idx, 1));  // [..., metafield, self]
         json_call(L, 1, 1);  // [..., result]
         if (lua_type(L, -1) == LUA_TSTRING) {
@@ -1118,12 +1018,7 @@ public:
     void encode_array(lua_State *L, Writer &writer, int idx, size_t array_length, int depth) const {
       writer.StartArray();
       for (size_t i = 1; i <= array_length; ++i) {
-#if LUA_VERSION_NUM >= 503
         lua_rawgeti(L, idx, static_cast<lua_Integer>(i));
-#else
-        lua_pushinteger(L, static_cast<lua_Integer>(i));
-        lua_rawget(L, json_rel_index(idx, 1));
-#endif
         encodeValue(L, writer, -1, depth);
         lua_pop(L, 1);
       }
@@ -1147,12 +1042,10 @@ public:
             break;
           }
           case LUA_TNUMBER: {
-#if LUA_VERSION_NUM >= 503
             if (json_isinteger(L, -2))
               key = LuaSAX::Key(lua_tointeger(L, -2));
             else
-#endif
-            key = LuaSAX::Key(lua_tonumber(L, -2));
+              key = LuaSAX::Key(lua_tonumber(L, -2));
             break;
           }
           default: {

@@ -44,11 +44,7 @@
   #define LUA_RAPIDJSON_ANCHOR
 #endif
 
-#if LUA_VERSION_NUM <= 502
-typedef int json_regType;  // Registry Table KeyType
-#else
 typedef lua_Integer json_regType;  // Registry Table KeyType
-#endif
 
 /* Registry Subtable Keys */
 #define LUA_RAPIDJSON_REG_FLAGS 1
@@ -139,11 +135,7 @@ bool has_json_type (lua_State *L, int idx, bool *is_array) {
 
   const int type = luaL_getmetafield(L, idx, LUA_RAPIDJSON_META_TYPE);
   if (type != LUA_METAFIELD_FAIL) {
-#if LUA_VERSION_NUM > 502
     if (type == LUA_TSTRING) {
-#else
-    if (lua_type(L, -1) == LUA_TSTRING) {
-#endif
       *is_array = strcmp(lua_tostring(L, -1), LUA_RAPIDJSON_META_TYPE_ARRAY) == 0;
       result = true;
     }
@@ -1057,11 +1049,7 @@ static int rapidjson_use_lpeg (lua_State *L) {
 #if defined(LUA_RAPIDJSON_ANCHOR)
 static void rapidjson_create_anchor (lua_State *L, const char *name, const luaL_Reg *l) {
   if (luaL_newmetatable(L, name)) {
-  #if LUA_VERSION_NUM == 501
-    luaL_register(L, nullptr, l);
-  #else
     luaL_setfuncs(L, l, 0);
-  #endif
   }
   lua_pop(L, 1);  /* pop metatable */
 }
@@ -1092,17 +1080,13 @@ LUAMOD_API int luaopen_rapidjson (lua_State *L) {
 #if defined(LUA_RAPIDJSON_ANCHOR)
   static luaL_Reg rapidjson_encode_anchor[] {
     { "__gc", EncoderData::__gc },
-  #if LUA_VERSION_NUM >= 504
     { "__close", EncoderData::__gc },
-  #endif
     { nullptr, nullptr },
   };
 
   static luaL_Reg rapidjson_decode_anchor[] {
     { "__gc", DecoderData::__gc },
-  #if LUA_VERSION_NUM >= 504
     { "__close", DecoderData::__gc },
-  #endif
     { nullptr, nullptr },
   };
 
@@ -1113,11 +1097,7 @@ LUAMOD_API int luaopen_rapidjson (lua_State *L) {
   create_shared_meta(L, LUA_RAPIDJSON_REG_ARRAY, LUA_RAPIDJSON_META_TYPE_ARRAY);
   create_shared_meta(L, LUA_RAPIDJSON_REG_OBJECT, LUA_RAPIDJSON_META_TYPE_OBJECT);
 
-#if LUA_VERSION_NUM == 501
-  luaL_register(L, LUA_RAPIDJSON_JSON_LIBNAME, luajson_lib);
-#else
   luaL_newlib(L, luajson_lib);
-#endif
 
   lua_pushboolean(L, 0); lua_setfield(L, -2, "using_lpeg");
   lua_pushliteral(L, LUA_RAPIDJSON_NAME); lua_setfield(L, -2, "_NAME");
@@ -1130,11 +1110,6 @@ LUAMOD_API int luaopen_rapidjson (lua_State *L) {
   lua_pushboolean(L, 0); lua_setfield(L, -2, "_COMPAT");
 #endif
 
-  /* Register name globally for 5.1 */
-#if LUA_VERSION_NUM == 501
-  lua_pushvalue(L, -1);
-  lua_setglobal(L, LUA_RAPIDJSON_JSON_LIBNAME);
-#endif
   return 1;
 }
 

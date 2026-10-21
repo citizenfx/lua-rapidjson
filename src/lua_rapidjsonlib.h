@@ -30,10 +30,6 @@
 #define LUA_RAPIDJSON_COPYRIGHT "Copyright (C) 2015 Xpol Wan; 2020, Gottfried Leibniz"
 #define LUA_RAPIDJSON_DESCRIPTION "rapidjson bindings for Lua"
 
-#if LUA_VERSION_NUM == 501
-  #define LUAMOD_API LUALIB_API
-#endif
-
 #if defined(__cplusplus)
 extern "C" {
 #endif

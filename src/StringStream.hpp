@@ -189,41 +189,7 @@ public:
         return false;
       }
       else if (top > (call_top + 1)) {  // Move "error message" to call_top + 1
-#if LUA_VERSION_NUM < 503
-        static auto compat_absindex = [](lua_State *L, int i) -> int {
-          if (i < 0 && i > LUA_REGISTRYINDEX)
-            i += lua_gettop(L) + 1;
-          return i;
-        };
-
-        static auto compat_reverse = [](lua_State *L, int a, int b) {
-          for (; a < b; ++a, --b) {
-            lua_pushvalue(L, a);
-            lua_pushvalue(L, b);
-            lua_replace(L, a);
-            lua_replace(L, b);
-          }
-        };
-
-        static auto compat_rotate = [](lua_State *_L, int idx, int n) {
-          idx = compat_absindex(_L, idx);
-
-          const int n_elems = lua_gettop(_L) - idx + 1;
-          if (n < 0)
-            n += n_elems;
-
-          if (n > 0 && n < n_elems) {
-            n = n_elems - n;
-            compat_reverse(_L, idx, idx + n - 1);
-            compat_reverse(_L, idx + n, idx + n_elems - 1);
-            compat_reverse(_L, idx, idx + n_elems - 1);
-          }
-        };
-
-        compat_rotate(L, call_top + 1, 1);
-#else
         lua_rotate(L, call_top + 1, 1);
-#endif
         lua_settop(L, call_top + 1);
         return true;
       }
