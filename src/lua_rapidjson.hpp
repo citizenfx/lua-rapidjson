@@ -277,8 +277,7 @@ static inline double lua_grisuRound(double d) {
 ** ===================================================================
 */
 
-/* TODO: Option to allow external linkage of these functions */
-#define LUA_RAPIDJSON_API LUAI_FUNC
+#define LUA_RAPIDJSON_API LUALIB_API
 
 /* Pushes the null-sentinel onto the stack; returning 1. */
 LUA_RAPIDJSON_API int json_null (lua_State *L);
